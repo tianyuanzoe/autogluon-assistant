@@ -53,16 +53,20 @@ class CAAFETransformer(BaseFeatureTransformer):
             display_method="print",
         )
 
-        self.dataset_description = kwargs.get("dataset_description", "a machine learning competition")
-        self.target_column_name = kwargs.get("label_column", "")
-
-        self.supported_problem_type = kwargs["problem_type"] in ("binary", "multiclass")
-
         self.metadata = {"transformer": "CAAFE"}
 
-    def _fit_dataframes(self, train_X: pd.DataFrame, train_y: pd.Series) -> None:
+    def _fit_dataframes(
+        self,
+        train_X: pd.DataFrame,
+        train_y: pd.Series,
+        *,
+        target_column_name: str,
+        problem_type: str = "classification",
+        dataset_description: str = "",
+        **kwargs,
+    ) -> None:
 
-        if not self.supported_problem_type:
+        if problem_type not in ("binary", "multiclass"):
             logger.info("Feature transformer CAAFE only supports classification problems.")
             return
 
@@ -73,18 +77,14 @@ class CAAFETransformer(BaseFeatureTransformer):
         self.caafe_clf.fit(
             train_X.to_numpy(),
             encoded_y if categorical_target else train_y.to_numpy(),
-            self.dataset_description,
+            dataset_description,
             train_X.columns,
-            self.target_column_name,
+            target_column_name,
         )
         logger.info("CAAFE generated features:")
         logger.info("{self.caafe_clf.code}")
 
     def _transform_dataframes(self, train_X: pd.DataFrame, test_X: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
-
-        if not self.supported_problem_type:
-            return train_X, test_X
-
         transformed_train_X = run_llm_code(self.caafe_clf.code, train_X)
         transformed_test_X = run_llm_code(self.caafe_clf.code, test_X)
 

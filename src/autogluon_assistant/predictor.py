@@ -77,7 +77,7 @@ class AutogluonTabularPredictor(Predictor):
             eval_metric = root_mean_square_logarithmic_error
 
         predictor_init_kwargs = {
-            "learner_kwargs": {"ignored_columns": task.columns_in_train_but_not_test + [task.test_id_column]},
+            "learner_kwargs": {"ignored_columns": task.columns_in_train_but_not_test},
             "label": task.label_column,
             "eval_metric": eval_metric,
             **self.config.predictor_init_kwargs,

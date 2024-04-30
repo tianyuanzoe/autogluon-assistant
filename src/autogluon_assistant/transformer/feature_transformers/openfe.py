@@ -21,7 +21,7 @@ class OpenFETransformer(BaseFeatureTransformer):
 
         self.metadata: Dict[str, Any] = {"transformer": "OpenFE"}
 
-    def _fit_dataframes(self, train_X: pd.DataFrame, train_y: pd.Series) -> None:
+    def _fit_dataframes(self, train_X: pd.DataFrame, train_y: pd.Series, **kwargs) -> None:
         train_y_df = pd.DataFrame(train_y, index=train_X.index)
 
         # Fill columns of type 'object' with nan values with 'unknonwn'. OpenFE doesn't handle this case.

@@ -5,7 +5,8 @@ from .task_inference import (
     FilenameInferenceTransformer,
     LabelColumnInferenceTransformer,
     ProblemTypeInferenceTransformer,
-    TestIdColumnInferenceTransformer,
+    TestIdColumnTransformer,
+    TrainIdColumnDropTransformer,
 )
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "LabelColumnInferenceTransformer",
     "ProblemTypeInferenceTransformer",
     "OpenFETransformer",
-    "TestIdColumnInferenceTransformer",
+    "TestIdColumnTransformer",
+    "TrainIdColumnDropTransformer",
 ]

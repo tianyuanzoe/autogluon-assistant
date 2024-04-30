@@ -1,8 +1,9 @@
 from typing import Any, Dict
 
-from autogluon_assistant.llm import AssistantChatOpenAI, LLMFactory
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
+
+from autogluon_assistant.llm import AssistantChatOpenAI, LLMFactory
 
 from .predictor import AutogluonTabularPredictor
 from .task import TabularPredictionTask
@@ -11,7 +12,8 @@ from .transformer import (
     FilenameInferenceTransformer,
     LabelColumnInferenceTransformer,
     ProblemTypeInferenceTransformer,
-    TestIdColumnInferenceTransformer,
+    TestIdColumnTransformer,
+    TrainIdColumnDropTransformer,
 )
 
 
@@ -41,20 +43,13 @@ class TabularPredictionAssistant:
             [
                 FilenameInferenceTransformer(llm=self.llm),
                 LabelColumnInferenceTransformer(llm=self.llm),
-                TestIdColumnInferenceTransformer(llm=self.llm),
+                TestIdColumnTransformer(llm=self.llm),
+                TrainIdColumnDropTransformer(llm=self.llm),
                 ProblemTypeInferenceTransformer(),
             ]
             + ([EvalMetricInferenceTransformer(llm=self.llm)] if self.config.infer_eval_metric else [])
             + (
-                [
-                    instantiate(
-                        ft_config,
-                        problem_type=task.problem_type,
-                        dataset_description=task.data_description,
-                        label_column=task.label_column,
-                    )
-                    for ft_config in self.feature_transformers_config
-                ]
+                [instantiate(ft_config) for ft_config in self.feature_transformers_config]
                 if self.feature_transformers_config
                 else []
             )

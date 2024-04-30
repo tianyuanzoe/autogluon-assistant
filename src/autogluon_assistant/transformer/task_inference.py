@@ -3,7 +3,14 @@ import logging
 from typing import Dict, List, Type, Union
 
 import numpy as np
+import pandas as pd
 from autogluon.core.utils.utils import infer_problem_type
+from langchain.output_parsers import ResponseSchema, StructuredOutputParser
+from langchain.prompts.chat import ChatPromptTemplate
+from langchain_core.exceptions import OutputParserException
+from langchain_core.messages import HumanMessage, SystemMessage
+from pydantic import BaseModel, Field
+
 from autogluon_assistant.llm import AssistantChatOpenAI
 from autogluon_assistant.llm.prompts import (
     basic_intro_prompt,
@@ -19,11 +26,6 @@ from autogluon_assistant.llm.prompts import (
     zip_file_prompt,
 )
 from autogluon_assistant.task import TabularPredictionTask
-from langchain.output_parsers import ResponseSchema, StructuredOutputParser
-from langchain.prompts.chat import ChatPromptTemplate
-from langchain_core.exceptions import OutputParserException
-from langchain_core.messages import HumanMessage, SystemMessage
-from pydantic import BaseModel, Field
 
 from .base import BaseTransformer
 
@@ -174,15 +176,38 @@ class LabelColumnInferenceTransformer(LLMParserTransformer):
         return task
 
 
-class TestIdColumnInferenceTransformer(LLMParserTransformer):
+class AbstractIdColumnInferenceTransformer(LLMParserTransformer):
+    """Identifies the ID column in the data to be used when generating predictions."""
+
+    traits = IdColumnTrait
+
+    def _parse_id_column_in_data(self, data: pd.DataFrame, output_id_column: str):
+        columns = data.columns.to_list()
+        if len(columns) > 50:
+            columns = columns[:10] + columns[-10:]
+
+        composite_prompt = [
+            infer_test_id_column_template.format(
+                output_id_column=output_id_column,
+                test_columns="\n".join(columns),
+            ),
+            format_instructions_template.format(self.parser.get_format_instructions()),
+        ]
+        try:
+            parser_output = self._chat_and_parse_prompt_output(composite_prompt, basic_system_prompt)
+            parsed_id_column = parser_output["id_column"]
+        except OutputParserException:
+            parsed_id_column = "NO_ID_COLUMN_IDENTIFIED"
+        return parsed_id_column
+
+
+class TestIdColumnTransformer(AbstractIdColumnInferenceTransformer):
     """Identifies the ID column in the test data to be used when generating predictions.
 
     Side Effect
     -----------
     If no valid ID column could be identified by the LLM, a new ID column is added to the test data.
     """
-
-    traits = IdColumnTrait
 
     def transform(self, task: TabularPredictionTask) -> TabularPredictionTask:
         output_id_column = task.output_id_column
@@ -194,28 +219,11 @@ class TestIdColumnInferenceTransformer(LLMParserTransformer):
         else:
             # if the output ID column is not in the test column, we try to identify the test ID column by
             # chatting with the LLM
-            test_columns = task.test_data.columns.to_list()
-            if len(test_columns) > 50:
-                test_columns = test_columns[:10] + test_columns[-10:]
-            output_data = task.output_data
-
-            composite_prompt = [
-                infer_test_id_column_template.format(
-                    output_id_column=task.output_id_column,
-                    test_columns="\n".join(test_columns),
-                ),
-                format_instructions_template.format(self.parser.get_format_instructions()),
-            ]
-            try:
-                parser_output = self._chat_and_parse_prompt_output(composite_prompt, basic_system_prompt)
-                parsed_id_column = parser_output["id_column"]
-            except OutputParserException:
-                parsed_id_column = "NO_ID_COLUMN_IDENTIFIED"
-
+            parsed_id_column = self._parse_id_column_in_data(task.test_data, output_id_column)
             if parsed_id_column == "NO_ID_COLUMN_IDENTIFIED" or parsed_id_column not in task.test_data.columns:
                 # if no valid column could be identified by the LLM, we also transform the test data and add a new ID column
-                start_val, end_val = output_data[output_id_column].iloc[[0, -1]]
-                if all(output_data[output_id_column] == np.arange(start_val, end_val + 1)):
+                start_val, end_val = task.output_data[output_id_column].iloc[[0, -1]]
+                if all(task.output_data[output_id_column] == np.arange(start_val, end_val + 1)):
                     new_test_data = task.test_data.copy()
                     new_test_data[output_id_column] = np.arange(start_val, start_val + len(task.test_data))
                     task.test_data = new_test_data
@@ -228,6 +236,36 @@ class TestIdColumnInferenceTransformer(LLMParserTransformer):
             test_id_column = parsed_id_column
 
         task.metadata["test_id_column"] = test_id_column
+        return task
+
+
+class TrainIdColumnDropTransformer(AbstractIdColumnInferenceTransformer):
+    """Identifies the ID column in training data and drops it from the training data set if the identified column is valid."""
+
+    def transform(self, task: TabularPredictionTask) -> TabularPredictionTask:
+        output_id_column = task.output_id_column
+        train_id_column = None
+
+        if output_id_column in task.train_data.columns:
+            train_id_column = output_id_column
+        else:
+            # if the output ID column is not in the test column, we try to identify the test ID column by
+            # chatting with the LLM
+            parsed_id_column = self._parse_id_column_in_data(task.train_data, output_id_column)
+
+            if (
+                parsed_id_column != "NO_ID_COLUMN_IDENTIFIED"
+                and parsed_id_column in task.train_data.columns
+                and task.train_data[parsed_id_column].nunique() == len(task.train_data)
+            ):
+                train_id_column = parsed_id_column
+
+        if train_id_column is not None:
+            task.train_data = task.train_data.drop(columns=[train_id_column])
+            logger.info(f"Dropping ID column {train_id_column} from training data.")
+            task.metadata["dropped_train_id_column"] = True
+
+        task.metadata["train_id_column"] = train_id_column
         return task
 
 
