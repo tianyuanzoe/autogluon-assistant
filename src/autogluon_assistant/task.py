@@ -56,6 +56,44 @@ class TabularPredictionTask:
     def __repr__(self) -> str:
         return f"TabularPredictionTask(name={self.name}, description={self.description[:100]}, {len(self.dataset_mapping)} datasets)"
 
+    @staticmethod
+    def read_task_file(task_path: Path, filename_pattern: str, default_filename: str = "description.txt") -> str:
+        """Recursively search for a file in the task path and return its contents."""
+        try:
+            first_path = sorted(
+                list(task_path.glob(filename_pattern)),
+                key=lambda x: len(x.parents),  # top level files takes precedence
+            )
+            if not first_path:
+                return Path.read_text(task_path / default_filename)
+            return Path.read_text(first_path[0])
+        except (FileNotFoundError, IndexError):
+            return ""
+
+    @classmethod
+    def from_path(cls, task_path: Path, name: Optional[str] = None) -> "TabularPredictionTask":
+        task_data_filenames: List[str] = cls.read_task_file(
+            task_path,
+            "**/*files.txt",
+            default_filename="task_files.txt",
+        ).split("\n")
+
+        data_description = cls.read_task_file(task_path, "**/data.txt")
+        evaluation_description = cls.read_task_file(task_path, "**/evaluation.txt")
+        full_description = cls.read_task_file(task_path, "description.txt") or "\n\n".join(
+            [data_description, evaluation_description]
+        )
+
+        return cls(
+            name=name or task_path.name,
+            description=full_description,
+            filepaths=[task_path / fn for fn in task_data_filenames],
+            metadata=dict(
+                data_description=data_description,
+                evaluation_description=evaluation_description,
+            ),
+        )
+
     def describe(self) -> Dict[str, Any]:
         """Return a description of the task."""
         return {

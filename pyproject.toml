@@ -16,6 +16,8 @@ dependencies = [
     "openfe",
     "pydantic==1.10.13",
     "caafe@git+https://github.com/gidler/CAAFE.git@main",
+    "typer",
+    "rich",
 ]
 
 [project.optional-dependencies]
@@ -29,6 +31,9 @@ dev = [
 
 [project.urls]
 "Homepage" = "https://github.com/autogluon/autogluon-assistant"
+
+[project.scripts]
+autogluon-assistant = "autogluon_assistant:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

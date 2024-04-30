@@ -32,24 +32,6 @@ from .base import BaseTransformer
 logger = logging.getLogger(__name__)
 
 
-def trim_text(text: str, begin_str: str, end_str: str) -> str:
-
-    start = text.find(begin_str) if begin_str != "" else 0
-    end = text.rfind(end_str) if end_str != "" else len(text)
-
-    if start == -1 or (end != -1 and start + len(begin_str) >= end):
-        raise ValueError("Description trimming failed. Target words not present or in unexpected postion!")
-
-    return text[start + len(begin_str) : end]
-
-
-def clean_data_descriptions(text: str) -> str:
-    begin_key = "Dataset Description"
-    end_key = "expand_less"
-
-    return trim_text(text, begin_key, end_key)
-
-
 class FilenameTraits(BaseModel):
     train: str = Field(description="train data file name")
     test: str = Field(description="test data file name")
@@ -135,7 +117,7 @@ class FilenameInferenceTransformer(LLMParserTransformer):
     def transform(self, task: TabularPredictionTask) -> TabularPredictionTask:
         composite_prompt = [
             basic_intro_prompt,
-            data_description_template.format(clean_data_descriptions(task.data_description)),
+            data_description_template.format(task.data_description),
             task_files_template.format(task.get_filenames()),
             zip_file_prompt,
             parse_fields_template.format(" ".join(self.traits.__fields__.keys())),
@@ -156,7 +138,7 @@ class LabelColumnInferenceTransformer(LLMParserTransformer):
     def transform(self, task: TabularPredictionTask) -> TabularPredictionTask:
         composite_prompt = [
             basic_intro_prompt,
-            data_description_template.format(clean_data_descriptions(task.data_description)),
+            data_description_template.format(task.data_description),
             evaluation_description_template.format(task.evaluation_description),
             columns_in_train_not_test_template.format("\n".join(task.columns_in_train_but_not_test)),
             parse_fields_template.format(" ".join(self.parser.__fields__.keys())),
@@ -309,7 +291,7 @@ class EvalMetricInferenceTransformer(LLMParserTransformer):
 
         composite_prompt = [
             basic_intro_prompt,
-            data_description_template.format(clean_data_descriptions(task.data_description)),
+            data_description_template.format(task.data_description),
             eval_metric_prompt.format(
                 evaluation_description=task.evaluation_description,
                 metrics="\n".join([name for name, _ in candidate_metrics]),

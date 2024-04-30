@@ -1,5 +1,7 @@
 basic_intro_prompt = "The following sections contain descriptive information about a data science task:"
-basic_system_prompt = "You are an expert assistant that parses information about data science tasks, such as data science competitions."
+basic_system_prompt = (
+    "You are an expert assistant that parses information about data science tasks, such as data science competitions."
+)
 columns_in_train_not_test_template = (
     "The following columns are in the train dataset and not test dataset. The label column is likely one of these:\n{}"
 )
