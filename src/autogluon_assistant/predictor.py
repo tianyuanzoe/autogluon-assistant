@@ -1,5 +1,6 @@
 """Predictors solve tabular prediction tasks"""
 
+import logging
 from collections import defaultdict
 from typing import Any, Dict
 
@@ -10,6 +11,8 @@ from autogluon.tabular import TabularDataset, TabularPredictor
 from sklearn.metrics import mean_squared_log_error
 
 from .task import TabularPredictionTask
+
+logger = logging.getLogger(__name__)
 
 BINARY_PROBA_INDICATORS = [
     "logloss",
@@ -83,6 +86,11 @@ class AutogluonTabularPredictor(Predictor):
             **self.config.predictor_init_kwargs,
         }
         predictor_fit_kwargs = self.config.predictor_fit_kwargs.copy()
+
+        logger.info("Fitting AutoGluon TabularPredictor")
+        logger.info(f"predictor_init_kwargs: {predictor_init_kwargs}")
+        logger.info(f"predictor_fit_kwargs: {predictor_fit_kwargs}")
+
         if predictor_fit_kwargs.get("dynamic_stacking", False):
             predictor_fit_kwargs["num_stack_levels"] = 1
 

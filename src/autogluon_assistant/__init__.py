@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import Optional
@@ -11,6 +12,8 @@ from typing_extensions import Annotated
 
 from .assistant import TabularPredictionAssistant
 from .task import TabularPredictionTask
+
+logging.basicConfig(level=logging.INFO)
 
 __all__ = ["TabularPredictionAssistant", "TabularPredictionTask"]
 
@@ -74,6 +77,15 @@ def run_assistant(
     task = assistant.preprocess_task(task)
 
     rprint("[green]Task preprocessing complete![/green]")
+    task_description = task.describe()
+
+    for data_key in ["train_data", "test_data", "output_data"]:
+        if data_key in task_description:
+            rprint(f"{data_key}:")
+            rprint(pd.DataFrame(task_description.pop(data_key, {})).T)
+
+    rprint("[green]Task description:[/green]")
+    rprint(task_description)
 
     assistant.fit_predictor(task)
 
