@@ -7,9 +7,11 @@ import warnings
 from concurrent.futures import ProcessPoolExecutor
 from typing import Any, Dict, Mapping, Tuple
 
+import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from openfe import OpenFE, transform
+from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 from tqdm import tqdm
 
 from .base import BaseFeatureTransformer
@@ -208,6 +210,60 @@ class AssistantOpenFE(OpenFE):
                 for r in results:
                     res.extend(r.result())
         return res
+
+    def _evaluate(self, candidate_feature, train_y, val_y, train_init, val_init, init_metric):
+        train_x = pd.DataFrame(candidate_feature.data.loc[train_y.index])
+        val_x = pd.DataFrame(candidate_feature.data.loc[val_y.index])
+        if self.stage1_metric == "predictive":
+            params = {
+                "n_estimators": 100,
+                "importance_type": "gain",
+                "num_leaves": 16,
+                "seed": 1,
+                "deterministic": True,
+                "n_jobs": 1,
+                "verbosity": -1,
+            }
+            if self.metric is not None:
+                params.update({"metric": self.metric})
+            if self.task == "classification":
+                gbm = lgb.LGBMClassifier(**params)
+            else:
+                gbm = lgb.LGBMRegressor(**params)
+            gbm.fit(
+                train_x,
+                train_y.values.ravel(),
+                init_score=train_init,
+                eval_init_score=[val_init],
+                eval_set=[(val_x, val_y.values.ravel())],
+                callbacks=[lgb.early_stopping(3, verbose=False)],
+            )
+            key = list(gbm.best_score_["valid_0"].keys())[0]
+            if self.metric in ["auc"]:
+                score = gbm.best_score_["valid_0"][key] - init_metric
+            else:
+                score = init_metric - gbm.best_score_["valid_0"][key]
+        elif self.stage1_metric == "corr":
+            score = np.corrcoef(
+                pd.concat([train_x, val_x], axis=0).fillna(0).values.ravel(),
+                pd.concat([train_y, val_y], axis=0).fillna(0).values.ravel(),
+            )[0, 1]
+            score = abs(score)
+        elif self.stage1_metric == "mi":
+            if self.task == "regression":
+                r = mutual_info_regression(
+                    pd.concat([train_x, val_x], axis=0).replace([np.inf, -np.inf], 0).fillna(0),
+                    pd.concat([train_y, val_y], axis=0).values.ravel(),
+                )
+            else:
+                r = mutual_info_classif(
+                    pd.concat([train_x, val_x], axis=0).replace([np.inf, -np.inf], 0).fillna(0),
+                    pd.concat([train_y, val_y], axis=0).values.ravel(),
+                )
+            score = r[0]
+        else:
+            raise NotImplementedError("Cannot recognize filter_metric %s." % self.stage1_metric)
+        return score
 
     def _calculate_and_evaluate_multiprocess(self, candidate_features, train_idx, val_idx):
         results = []

@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Mapping, Tuple
 
 import pandas as pd
@@ -22,17 +23,16 @@ class CAAFETransformer(BaseFeatureTransformer):
         eval_model: str = "lightgbm",
         **kwargs,
     ) -> None:
+        import openai
+
+        openai.api_key = kwargs.get("openai_api_key", os.environ.get("OPENAI_API_KEY"))
+
         self.llm_model = llm_model
         self.iterations = num_iterations
         self.optimization_metric = optimization_metric
         self.eval_model = eval_model
 
-        if self.eval_model == "random_forrest":
-            from sklearn.ensemble import HistGradientBoostingClassifier
-
-            clf_no_feat_eng = HistGradientBoostingClassifier(max_depth=2)
-
-        elif self.eval_model == "tab_pfn":
+        if self.eval_model == "tab_pfn":
             from tabpfn import TabPFNClassifier
 
             clf_no_feat_eng = TabPFNClassifier(device="cpu", N_ensemble_configurations=16)
