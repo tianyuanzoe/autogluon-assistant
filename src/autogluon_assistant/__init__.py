@@ -102,7 +102,9 @@ def run_assistant(
 
 
 def main():
-    typer.run(run_assistant)
+    app = typer.Typer(pretty_exceptions_enable=False)
+    app.command()(run_assistant)
+    app()
 
 
 if __name__ == "__main__":

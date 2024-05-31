@@ -1,4 +1,4 @@
-from .base import BaseTransformer
+from .base import BaseTransformer, TransformTimeoutError
 from .feature_transformers import BaseFeatureTransformer, CAAFETransformer, OpenFETransformer
 from .task_inference import (
     EvalMetricInferenceTransformer,
@@ -20,4 +20,5 @@ __all__ = [
     "OpenFETransformer",
     "TestIdColumnTransformer",
     "TrainIdColumnDropTransformer",
+    "TransformTimeoutError",
 ]

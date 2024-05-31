@@ -1,3 +1,5 @@
+import logging
+import signal
 from typing import Any, Dict
 
 from hydra.utils import instantiate
@@ -14,7 +16,26 @@ from .transformer import (
     ProblemTypeInferenceTransformer,
     TestIdColumnTransformer,
     TrainIdColumnDropTransformer,
+    TransformTimeoutError,
 )
+
+logger = logging.getLogger(__name__)
+
+
+class timeout:
+    def __init__(self, seconds=1, error_message="Transform timed out"):
+        self.seconds = seconds
+        self.error_message = error_message
+
+    def handle_timeout(self, signum, frame):
+        raise TransformTimeoutError(self.error_message)
+
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.alarm(self.seconds)
+
+    def __exit__(self, type, value, traceback):
+        signal.alarm(0)
 
 
 class TabularPredictionAssistant:
@@ -56,7 +77,8 @@ class TabularPredictionAssistant:
         )
         for transformer in task_preprocessors:
             try:
-                task = transformer.fit_transform(task)
+                with timeout(seconds=60 * 60, error_message=f"Task preprocessing timed out: {transformer.name}"):
+                    task = transformer.fit_transform(task)
             except Exception as e:
                 self.handle_exception(f"Task preprocessing: {transformer.name}", e)
 

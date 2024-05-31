@@ -1,6 +1,10 @@
 from autogluon_assistant.task import TabularPredictionTask
 
 
+class TransformTimeoutError(TimeoutError):
+    pass
+
+
 class BaseTransformer:
     def __init__(self, *args, **kwargs):
         pass

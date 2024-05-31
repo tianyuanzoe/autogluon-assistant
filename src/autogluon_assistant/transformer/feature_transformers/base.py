@@ -1,11 +1,12 @@
 import copy
 import logging
+import traceback
 from typing import Tuple
 
 import pandas as pd
 
 from autogluon_assistant.task import TabularPredictionTask
-from autogluon_assistant.transformer.base import BaseTransformer
+from autogluon_assistant.transformer.base import BaseTransformer, TransformTimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +33,11 @@ class BaseFeatureTransformer(BaseTransformer):
                 problem_type=task.problem_type,
                 dataset_description=task.data_description,
             )
-        except:
+        except TransformTimeoutError:
+            logger.warning(f"FeatureTransformer {self.__class__.__name__} timed out.")
+        except Exception:
             logger.warning(f"FeatureTransformer {self.__class__.__name__} failed to fit.")
+            logger.warning(traceback.format_exc())
         finally:
             return self
 
