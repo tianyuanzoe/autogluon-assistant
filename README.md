@@ -35,7 +35,7 @@ You can also run AutoGluon-Assistant with Bedrock through the access gateway set
 
 ## Usage
 
-Before launching AutoGluon Assistant (AG-A), ensure that the data files (dataset csv files, the dataset descriptions and task descriptions) are placed in the correct structure within the data directory. This setup is necessary for AG-A to run successfully. Here we'll demo using a dataset from a Kaggle Competition.
+Before launching AutoGluon Assistant (AG-A), ensure that the data files (dataset csv files, the dataset descriptions and task descriptions) are placed in the correct structure within the data directory. This setup is necessary for AG-A to run successfully. Below is a demo using a toy dataset from the Titanic Kaggle Competition.
 
 ```
 .
@@ -55,7 +55,7 @@ Before launching AutoGluon Assistant (AG-A), ensure that the data files (dataset
 Now you can launch the AutoGluon Assistant run using the following command:
 ```
 autogluon-assistant [NAME_OF_CONFIG_DIR] [NAME_OF_DATA_DIR]
-# e.g. autogluon-assistant ./config ./data
+# e.g. autogluon-assistant ./config ./toy_data
 ```
 
 After the run is complete, model predictions on test dataset are saved into the `aga-output-<timestamp>.csv` file which is formatted according to `sample_submission.csv` file.
