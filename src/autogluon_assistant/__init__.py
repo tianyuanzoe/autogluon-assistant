@@ -58,7 +58,8 @@ def run_assistant(
     """Run AutoGluon-Assistant on a task defined in a path."""
     rel_config_path = _resolve_config_path(config_path)
     with initialize(version_base=None, config_path=rel_config_path):
-        config = compose(config_name="config", overrides=config_overrides.split(" "))
+        overrides_list = config_overrides.split(" ") if config_overrides else []
+        config = compose(config_name="config", overrides=overrides_list)
 
     rprint("🤖 [bold red] Welcome to AutoGluon-Assistant [/bold red]")
 
