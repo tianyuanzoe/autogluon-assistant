@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 from pathlib import Path
@@ -99,6 +100,20 @@ def run_assistant(
         make_prediction_outputs(task, predictions).to_csv(fp, index=False)
 
     rprint(f"[green]Prediction complete! Outputs written to {output_filename}[/green]")
+
+    if config.save_artifacts.enabled:
+        # Determine the filename with or without timestamp
+        pickle_file_name = f"{task.name}_artifacts.pkl"
+        if config.save_artifacts.append_timestamp:
+            current_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            pickle_file_name = f"{task.name}_artifacts_{current_timestamp}.pkl"
+
+        full_save_path = f"{config.save_artifacts.path.rstrip('/')}/{pickle_file_name}"
+
+        task.save_artifacts(full_save_path, assistant.predictor, task.train_data, task.test_data, task.output_data)
+
+        rprint(f"[green]Artifacts including transformed datasets and trained model saved at {full_save_path}[/green]")
+
     return output_filename
 
 
