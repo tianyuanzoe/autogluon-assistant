@@ -1,6 +1,6 @@
 import difflib
 import logging
-from typing import Dict, List, Type, Union
+from typing import Dict
 
 from autogluon.core.utils.utils import infer_problem_type
 from langchain_core.exceptions import OutputParserException
@@ -35,6 +35,7 @@ class TaskInference:
         super().__init__(*args, **kwargs)
         self.llm = llm
         self.fallback_value = None
+        self.ignored_value = []
 
     def initialize_task(self, task):
         self.prompt_generator = None
@@ -44,8 +45,10 @@ class TaskInference:
     def transform(self, task: TabularPredictionTask) -> TabularPredictionTask:
         self.initialize_task(task)
         parser_output = self._chat_and_parse_prompt_output()
-        for key in parser_output:
-            setattr(task, key, parser_output[key])
+        for k,v in parser_output.items():
+            if v in self.ignored_value:
+                v = None
+            setattr(task, k, v)
         return task
 
     def parse_output(self, output):
@@ -71,10 +74,17 @@ class TaskInference:
         if self.valid_values is not None:
             for key, parsed_value in parsed_output.items():
                 if parsed_value not in self.valid_values:
-                    # Check if parsed_value is a string
+                    # Currently only support single parsed value
                     if isinstance(parsed_value, str):
                         close_matches = difflib.get_close_matches(parsed_value, self.valid_values)
+                    elif isinstance(parsed_value, list) and len(parsed_value) == 1:
+                        parsed_value = parsed_value[0]
+                        close_matches = difflib.get_close_matches(parsed_value, self.valid_values)
                     else:
+                        logger.warning(
+                            f"Unrecognized parsed value: {parsed_value} for key {key} parsed by the LLM."
+                            f"It has type: {type(parsed_value)}."
+                        )
                         close_matches = []
                     if len(close_matches) == 0:
                         if self.fallback_value:
@@ -99,6 +109,7 @@ class DescriptionFileNameInference(TaskInference):
     def initialize_task(self, task):
         filenames = [str(path) for path in task.filepaths]
         self.valid_values = filenames + [NO_FILE_IDENTIFIED]
+        self.fallback_value = NO_FILE_IDENTIFIED
         self.prompt_generator = DescriptionFileNamePromptGenerator(filenames=filenames)
 
     def _read_descriptions(self, parser_output: dict) -> str:
@@ -137,7 +148,9 @@ class DataFileNameInference(TaskInference):
 
     def initialize_task(self, task):
         filenames = [str(path) for path in task.filepaths]
-        self.valid_values = filenames
+        self.valid_values = filenames + [NO_FILE_IDENTIFIED]
+        self.fallback_value = NO_FILE_IDENTIFIED
+        self.ignored_value = [NO_FILE_IDENTIFIED]
         self.prompt_generator = DataFileNamePromptGenerator(
             data_description=task.metadata["description"], filenames=filenames
         )
@@ -155,8 +168,15 @@ class LabelColumnInference(TaskInference):
 class ProblemTypeInference(TaskInference):
     def initialize_task(self, task):
         self.valid_values = PROBLEM_TYPES
-        self.fallback_value = infer_problem_type(task.train_data[task.label_column], silent=True)
         self.prompt_generator = ProblemTypePromptGenerator(data_description=task.metadata["description"])
+
+    def transform(self, task: TabularPredictionTask) -> TabularPredictionTask:
+        try:
+            task.problem_type = infer_problem_type(task.train_data[task.label_column], silent=True)
+        except Exception as e:
+            logger.warning(f"Failed to inference problem type with Autogluon Tabular: {e}. Switched to use LLM to inference problem type.")
+            return super().transform(task)
+        return task
 
 
 class BaseIDColumnInference(TaskInference):
@@ -167,6 +187,9 @@ class BaseIDColumnInference(TaskInference):
         self.prompt_generator = None
 
     def initialize_task(self, task, description=None):
+        if self.get_data(task) is None:
+            return
+        
         column_names = list(self.get_data(task).columns)
         # Assume ID column can only appear in first 3 columns
         if len(column_names) >= 3:
@@ -186,6 +209,10 @@ class BaseIDColumnInference(TaskInference):
         pass
 
     def transform(self, task: TabularPredictionTask) -> TabularPredictionTask:
+        if self.get_data(task) is None:
+            setattr(task, self.get_id_column_name(), None)
+            return task
+        
         self.initialize_task(task)
         parser_output = self._chat_and_parse_prompt_output()
         id_column_name = self.get_id_column_name()
@@ -227,14 +254,8 @@ class TestIDColumnInference(BaseIDColumnInference):
                 else:
                     id_column = "id_column"
                 new_test_data = task.test_data.copy()
-                new_test_data[id_column] = task.output_data[task.output_id_column]
+                new_test_data[id_column] = task.sample_submission_data[task.output_id_column]
                 task.test_data = new_test_data
-            # if output data has id column that is different from test id column name
-            # elif id_column != task.output_id_column:
-            #    new_test_data = task.test_data.copy()
-            #    new_test_data = new_test_data.rename(columns={id_column: task.output_id_column})
-            #    task.test_data = new_test_data
-            #    id_column = task.output_id_column
 
         return id_column
 
@@ -262,7 +283,7 @@ class TrainIDColumnInference(BaseIDColumnInference):
 
 class OutputIDColumnInference(BaseIDColumnInference):
     def get_data(self, task):
-        return task.output_data
+        return task.sample_submission_data
 
     def get_prompt_generator(self):
         return OutputIDColumnPromptGenerator
