@@ -1,10 +1,9 @@
 import difflib
 import logging
-from typing import Dict
+from typing import Dict, List, Union  # Added Union for type hinting
 
 from autogluon.core.utils.utils import infer_problem_type
-from langchain_core.exceptions import OutputParserException
-
+from langchain_core.exceptions import OutputParserException  # Updated import
 from autogluon_assistant.prompting import (
     DataFileNamePromptGenerator,
     DescriptionFileNamePromptGenerator,
@@ -16,7 +15,6 @@ from autogluon_assistant.prompting import (
     TrainIDColumnPromptGenerator,
 )
 from autogluon_assistant.task import TabularPredictionTask
-
 from ..constants import (
     METRICS_BY_PROBLEM_TYPE,
     METRICS_DESCRIPTION,
@@ -35,17 +33,16 @@ class TaskInference:
         super().__init__(*args, **kwargs)
         self.llm = llm
         self.fallback_value = None
-        self.ignored_value = []
+        self.ignored_value: List[str] = []  # Added type hint
 
     def initialize_task(self, task):
         self.prompt_generator = None
         self.valid_values = None
-        pass
 
     def transform(self, task: TabularPredictionTask) -> TabularPredictionTask:
         self.initialize_task(task)
         parser_output = self._chat_and_parse_prompt_output()
-        for k,v in parser_output.items():
+        for k, v in parser_output.items():
             if v in self.ignored_value:
                 v = None
             setattr(task, k, v)
@@ -55,20 +52,17 @@ class TaskInference:
         assert self.prompt_generator is not None, "prompt_generator is not initialized"
         return self.prompt_generator.parser.parse(output.content)
 
-    def _chat_and_parse_prompt_output(
-        self,
-    ) -> Dict[str, str]:
+    def _chat_and_parse_prompt_output(self) -> Dict[str, str]:
         """Chat with the LLM and parse the output"""
         try:
             chat_prompt = self.prompt_generator.generate_chat_prompt()
             logger.debug(f"LLM chat_prompt:\n{chat_prompt.format_messages()}")
-            output = self.llm(chat_prompt.format_messages())
+            output = self.llm.invoke(chat_prompt.format_messages())
             logger.debug(f"LLM output:\n{output}")
-
             parsed_output = self.parse_output(output)
         except OutputParserException as e:
             logger.error(f"Failed to parse output: {e}")
-            logger.error(self.llm.describe())  # noqa
+            logger.error(self.llm.describe())
             raise e
 
         if self.valid_values is not None:
@@ -82,14 +76,15 @@ class TaskInference:
                         close_matches = difflib.get_close_matches(parsed_value, self.valid_values)
                     else:
                         logger.warning(
-                            f"Unrecognized parsed value: {parsed_value} for key {key} parsed by the LLM."
+                            f"Unrecognized parsed value: {parsed_value} for key {key} parsed by the LLM. "
                             f"It has type: {type(parsed_value)}."
                         )
                         close_matches = []
+
                     if len(close_matches) == 0:
                         if self.fallback_value:
                             logger.warning(
-                                f"Unrecognized value: {parsed_value} for key {key} parsed by the LLM."
+                                f"Unrecognized value: {parsed_value} for key {key} parsed by the LLM. "
                                 f"Will use default value: {self.fallback_value}."
                             )
                             parsed_output[key] = self.fallback_value
@@ -174,7 +169,9 @@ class ProblemTypeInference(TaskInference):
         try:
             task.problem_type = infer_problem_type(task.train_data[task.label_column], silent=True)
         except Exception as e:
-            logger.warning(f"Failed to inference problem type with Autogluon Tabular: {e}. Switched to use LLM to inference problem type.")
+            logger.warning(
+                f"Failed to inference problem type with Autogluon Tabular: {e}. Switched to use LLM to inference problem type."
+            )
             return super().transform(task)
         return task
 
@@ -189,7 +186,7 @@ class BaseIDColumnInference(TaskInference):
     def initialize_task(self, task, description=None):
         if self.get_data(task) is None:
             return
-        
+
         column_names = list(self.get_data(task).columns)
         # Assume ID column can only appear in first 3 columns
         if len(column_names) >= 3:
@@ -212,7 +209,7 @@ class BaseIDColumnInference(TaskInference):
         if self.get_data(task) is None:
             setattr(task, self.get_id_column_name(), None)
             return task
-        
+
         self.initialize_task(task)
         parser_output = self._chat_and_parse_prompt_output()
         id_column_name = self.get_id_column_name()
