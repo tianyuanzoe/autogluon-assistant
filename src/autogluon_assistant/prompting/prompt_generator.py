@@ -167,9 +167,10 @@ class ProblemTypePromptGenerator(PromptGenerator):
 class IDColumnPromptGenerator(PromptGenerator):
     fields = ["id_column"]
 
-    def __init__(self, data_description: str, column_names: list):
+    def __init__(self, data_description: str, column_names: list, label_column: str):
         super().__init__(data_description)
         self.column_names = get_outer_columns(column_names)
+        self.label_column = label_column
 
     def generate_prompt(self) -> str:
         return "\n\n".join(
@@ -179,6 +180,7 @@ class IDColumnPromptGenerator(PromptGenerator):
                 f"Based on the data description, which one of these columns is likely to be the Id column:\n{', '.join(self.column_names)}",
                 f"If no reasonable Id column is present, for example if all the columns appear to be similarly named feature columns, "
                 f"response with the value {NO_ID_COLUMN_IDENTIFIED}",
+                f"ID columns can't be {self.label_column}",
                 self.get_field_parsing_prompt(),
             ]
         )
