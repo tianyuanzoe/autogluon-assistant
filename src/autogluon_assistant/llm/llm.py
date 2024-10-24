@@ -3,14 +3,14 @@ import pprint
 from typing import Any, Dict, List, Union
 
 import boto3
-from langchain_openai import ChatOpenAI
+import botocore
+from langchain.schema import AIMessage, BaseMessage
 from langchain_aws import ChatBedrock
-from langchain.schema import BaseMessage, AIMessage
+from langchain_openai import ChatOpenAI
 from omegaconf import DictConfig
 from openai import OpenAI
-from pydantic import Field, BaseModel
+from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
-import botocore
 
 
 class AssistantChatOpenAI(ChatOpenAI, BaseModel):
@@ -69,7 +69,7 @@ class AssistantChatBedrock(ChatBedrock, BaseModel):
             "completion_tokens": self.output_,
         }
 
-    @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=10))
+    @retry(stop=stop_after_attempt(50), wait=wait_exponential(multiplier=1, min=4, max=10))
     def invoke(self, *args, **kwargs):
         input_: List[BaseMessage] = args[0]
         try:
@@ -159,7 +159,7 @@ class LLMFactory:
     @classmethod
     def get_chat_model(cls, config: DictConfig) -> Union[AssistantChatOpenAI, AssistantChatBedrock]:
         valid_models = cls.get_valid_models()
-
+        assert len(valid_models[config.provider]), "Check your bedrock keys"
         assert config.provider in valid_models, f"{config.provider} is not a valid provider in: {valid_models.keys()}"
         assert (
             config.model in valid_models[config.provider]
