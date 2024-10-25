@@ -1,6 +1,7 @@
 import difflib
 import logging
-from typing import Dict, List, Union  # Added Union for type hinting
+import textwrap
+from typing import Dict, List, Any  # Added Union for type hinting
 
 from autogluon.core.utils.utils import infer_problem_type
 from langchain_core.exceptions import OutputParserException  # Updated import
@@ -40,12 +41,41 @@ class TaskInference:
         self.prompt_generator = None
         self.valid_values = None
 
+    def log_value(self, key: str, value: Any, max_width: int = 80, indent: int = 4) -> None:
+        """
+        Log a key-value pair with formatted output for better readability.
+        
+        Args:
+            key: The key/field name to log
+            value: The value to log (can be None or any type)
+            max_width: Maximum width for wrapped text (default: 80 characters)
+            indent: Number of spaces to indent wrapped lines (default: 4)
+        """
+        if value is not None and value:
+            # Convert value to string and wrap long text
+            value_str = str(value)
+            if len(value_str) > max_width:
+                # Wrap the text, maintaining indentation
+                wrapped_value = textwrap.fill(
+                    value_str,
+                    width=max_width,
+                    initial_indent=" " * indent,
+                    subsequent_indent=" " * indent
+                )
+                logger.info(f"AGA has identified the {key} of the task:\n{wrapped_value}")
+            else:
+                # For short values, log on a single line
+                logger.info(f"AGA has identified the {key} of the task: {value_str}")
+        else:
+            logger.info(f"AGA failed to identify the {key} of the task, it is set to None.")
+
     def transform(self, task: TabularPredictionTask) -> TabularPredictionTask:
         self.initialize_task(task)
         parser_output = self._chat_and_parse_prompt_output()
         for k, v in parser_output.items():
             if v in self.ignored_value:
                 v = None
+            self.log_value(k, v)
             setattr(task, k, self.post_process(task=task, value=v))
         return task
 
@@ -137,6 +167,7 @@ class DescriptionFileNameInference(TaskInference):
         descriptions_read = self._read_descriptions(parser_output)
         if descriptions_read:
             task.metadata["description"] = descriptions_read
+        self.log_value("description", descriptions_read)
         return task
 
 
@@ -229,6 +260,7 @@ class BaseIDColumnInference(TaskInference):
 
         id_column = parser_output[id_column_name]
         id_column = self.process_id_column(task, id_column)
+        self.log_value(id_column_name, id_column)
         setattr(task, id_column_name, id_column)
         return task
 
