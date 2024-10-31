@@ -6,11 +6,7 @@ from typing import Any, Dict, Union
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from autogluon_assistant.llm import (
-    AssistantChatBedrock,
-    AssistantChatOpenAI,
-    LLMFactory,
-)
+from autogluon_assistant.llm import AssistantChatBedrock, AssistantChatOpenAI, LLMFactory
 
 from .predictor import AutogluonTabularPredictor
 from .task import TabularPredictionTask
@@ -106,7 +102,7 @@ class TabularPredictionAssistant:
         task = self.inference_task(task)
         logger.info("Automatic feature generation starts!")
         if self.feature_transformers_config:
-            if not ("OPENAI_API_KEY" in os.environ):
+            if "OPENAI_API_KEY" not in os.environ:
                 logger.info("No OpenAI API keys found, therefore, skip CAAFE")
                 fe_transformers = [
                     instantiate(ft_config)
