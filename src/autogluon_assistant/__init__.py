@@ -2,11 +2,10 @@ import datetime
 import logging
 import os
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import pandas as pd
 import typer
-from hydra import compose, initialize
 from omegaconf import OmegaConf
 from rich import print as rprint
 from typing_extensions import Annotated
@@ -14,15 +13,11 @@ from typing_extensions import Annotated
 from .assistant import TabularPredictionAssistant
 from .constants import NO_ID_COLUMN_IDENTIFIED
 from .task import TabularPredictionTask
+from .utils import load_config
 
 logging.basicConfig(level=logging.INFO)
 
 __all__ = ["TabularPredictionAssistant", "TabularPredictionTask"]
-
-
-def _resolve_config_path(path: str):
-    print(Path.cwd())
-    return os.path.relpath(Path(path), Path(__file__).parent.absolute())
 
 
 def get_task(path: Path) -> TabularPredictionTask:
@@ -81,18 +76,27 @@ def run_assistant(
     task_path: Annotated[str, typer.Argument(help="Directory where task files are included")],
     config_path: Annotated[
         Optional[str],
+        typer.Option("--config-path", "-c", help="Path to the configuration file (config.yaml)"),
+    ] = None,
+    config_overrides: Annotated[
+        Optional[List[str]],
         typer.Option(
-            "--config-path", "-c", help="Path to the configuration directory, which includes a config.yaml file"
+            "--config_overrides",
+            "-o",
+            help="Override config values. Format: key=value or key.nested=value. Can be used multiple times.",
         ),
-    ] = "./config/",
+    ] = None,
     output_filename: Annotated[Optional[str], typer.Option(help="Output File")] = "",
-    config_overrides: Annotated[Optional[str], typer.Option(help="Overrides for the config in Hydra format")] = "",
 ) -> str:
-    """Run AutoGluon-Assistant on a task defined in a path."""
-    rel_config_path = _resolve_config_path(config_path)
-    with initialize(version_base=None, config_path=rel_config_path):
-        overrides_list = config_overrides.split(" ") if config_overrides else []
-        config = compose(config_name="config", overrides=overrides_list)
+    logging.info("Starting AutoGluon-Assistant")
+
+    # Load config with all overrides
+    try:
+        config = load_config(config_path, config_overrides)
+        logging.info("Successfully loaded config")
+    except Exception as e:
+        logging.error(f"Failed to load config: {e}")
+        raise
 
     rprint("🤖 [bold red] Welcome to AutoGluon-Assistant [/bold red]")
 
