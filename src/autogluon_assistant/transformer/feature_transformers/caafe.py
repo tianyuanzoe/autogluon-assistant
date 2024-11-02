@@ -1,5 +1,6 @@
 import logging
 import os
+import warnings
 from typing import Mapping, Tuple
 
 import pandas as pd
@@ -9,6 +10,7 @@ from caafe.run_llm_code import run_llm_code
 from .base import BaseFeatureTransformer
 
 logger = logging.getLogger(__name__)
+warnings.filterwarnings(action="ignore")
 
 
 class CAAFETransformer(BaseFeatureTransformer):

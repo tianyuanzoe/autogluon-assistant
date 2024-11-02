@@ -1,5 +1,6 @@
 import logging
 import os
+import warnings
 from collections import namedtuple
 from typing import Tuple
 
@@ -12,6 +13,7 @@ from sentence_transformers import SentenceTransformer
 
 from .base import BaseFeatureTransformer
 
+warnings.filterwarnings(action="ignore")
 logger = logging.getLogger(__name__)
 logger.setLevel("DEBUG")
 
