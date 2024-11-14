@@ -401,10 +401,19 @@ def run_section():
 def setup_local_dataset():
     """Download all files from GitHub directory to local directory"""
     dataset_dir = Path("sample_dataset/knot_theory")
+    # Check if directory exists and required files exist
     if dataset_dir.exists():
-        return
+        train_present = any("train" in file.name for file in dataset_dir.iterdir())
+        test_present = any("test" in file.name for file in dataset_dir.iterdir())
+        txt_present = any(file.suffix == ".txt" for file in dataset_dir.iterdir())
+        if train_present and test_present and txt_present:
+            return
     dataset_dir.mkdir(parents=True, exist_ok=True)
 
+    description = SAMPLE_DATASET_DESCRIPTION
+    description_path = dataset_dir / "descriptions.txt"
+    if not description_path.exists():
+        description_path.write_text(description, encoding="utf-8")
     api_url = "https://api.github.com/repos/mli/ag-docs/contents/knot_theory"
     base_url = "https://raw.githubusercontent.com/mli/ag-docs/main/knot_theory/"
 
@@ -420,11 +429,6 @@ def setup_local_dataset():
                 response = requests.get(base_url + filename)
                 response.raise_for_status()
                 local_path.write_bytes(response.content)
-    description = SAMPLE_DATASET_DESCRIPTION
-
-    description_path = dataset_dir / "descriptions.txt"
-    description_path.write_text(description, encoding="utf-8")
-
     return dataset_dir
 
 
