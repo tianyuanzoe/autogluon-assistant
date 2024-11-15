@@ -57,11 +57,9 @@ def parse_override(override: str) -> tuple:
 def apply_overrides(config: Dict[str, Any], overrides: List[str]) -> Dict[str, Any]:
     """
     Apply command-line overrides to config
-
     Args:
         config: Base configuration
         overrides: List of overrides in format ["key1=value1", "key2.nested=value2"]
-
     Returns:
         Updated configuration
     """
@@ -71,17 +69,26 @@ def apply_overrides(config: Dict[str, Any], overrides: List[str]) -> Dict[str, A
     # Convert overrides to nested dict
     override_conf = {}
     overrides = ",".join(overrides)
-    overrides = re.split(r"[,\s]+", overrides)
+    # Split by comma but preserve commas inside square brackets
+    overrides = re.split(r",(?![^\[]*\])", overrides)
+
     for override in overrides:
+        override = override.strip()  # Remove any whitespace
         key, value = parse_override(override)
 
-        # Try to convert value to appropriate type
-        try:
-            # Try to evaluate as literal (for numbers, bools, etc)
-            value = eval(value)
-        except:
-            # Keep as string if eval fails
-            pass
+        # Handle list values enclosed in square brackets
+        if value.startswith("[") and value.endswith("]"):
+            # Extract items between brackets and split by comma
+            items = value[1:-1].split(",")
+            # Clean up each item and convert to list
+            value = [item.strip() for item in items if item.strip()]
+        else:
+            # Try to convert value to appropriate type for non-list values
+            try:
+                value = eval(value)
+            except:
+                # Keep as string if eval fails
+                pass
 
         # Handle nested keys
         current = override_conf
@@ -112,9 +119,15 @@ def load_config(
         ValueError: If config file not found or invalid
     """
     # Load default config
-    default_config_path = _get_default_config_path(presets)
+    default_config_path = _get_default_config_path(presets="default")
     logging.info(f"Loading default config from: {default_config_path}")
     config = OmegaConf.load(default_config_path)
+
+    # Apply Presets
+    presets_config_path = _get_default_config_path(presets=presets)
+    presets_config = OmegaConf.load(presets_config_path)
+    logging.info(f"Merging {presets} config from: {presets_config_path}")
+    config = OmegaConf.merge(config, presets_config)
 
     # If custom config provided, merge it
     if config_path:
@@ -134,3 +147,36 @@ def load_config(
         logging.info("Successfully applied command-line overrides")
 
     return config
+
+
+def get_feature_transformers_config(config: OmegaConf) -> Optional[List[Dict[str, Any]]]:
+    """
+    Retrieve the configuration of feature transformers based on enabled models.
+    Returns None if no models are enabled.
+
+    Args:
+        config (OmegaConf): The configuration object loaded from YAML
+
+    Returns:
+        Optional[List[Dict[str, Any]]]: List of transformer configurations,
+                                      or None if no models are enabled
+    """
+    # Get list of enabled models
+    enabled_models = config.feature_transformers.enabled_models
+
+    # Return None if no models are enabled
+    if not enabled_models:
+        return None
+
+    # Get all available model configurations
+    all_models_config = config.feature_transformers.models
+
+    # Create list of configurations for enabled models
+    transformers_config = [
+        OmegaConf.to_container(all_models_config[model_name], resolve=True)
+        for model_name in enabled_models
+        if model_name in all_models_config
+    ]
+
+    # Return None if no valid configurations were found
+    return transformers_config if transformers_config else None
