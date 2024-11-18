@@ -125,12 +125,19 @@ def config_llm():
 
 def config_feature_generation():
     load_value("feature_generation")
-    st.checkbox(
+    checkbox = st.checkbox(
         "Feature Generation (Beta Feature)",
         key="_feature_generation",
         on_change=store_value,
         args=["feature_generation"],
     )
+    # Show warning if checkbox is checked
+    if checkbox:
+        st.warning(
+            "Feature Generation is an experimental feature which requires optional packages. Please install [requirements](https://github.com/autogluon/autogluon-assistant/blob/main/requirements.txt) with: "
+            "'pip install -r requirements.txt'",
+            icon="⚠️",
+        )
 
 
 def store_value_and_save_file(key):
