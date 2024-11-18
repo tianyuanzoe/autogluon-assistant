@@ -8,6 +8,8 @@ AutoGluon Assistant (AG-A) provides users a simple interface where they can inpu
 
 ## Setup
 
+Installing from source: 
+
 ```bash
 # create a conda env
 conda create -n aga python=3.10
@@ -15,9 +17,22 @@ conda activate aga
 
 # clone repositories
 git clone https://github.com/autogluon/autogluon-assistant.git
-cd autogluon-assistant && pip install -e ".[dev]" && cd ..
+cd autogluon-assistant && pip install -e "." && cd ..
 ```
 
+or simply:
+
+```bash
+pip install autogluon.assistant
+```
+
+#### Beta Features
+
+AG-A now supports automatic feature generation as part of its beta features. To enable these features, please install the beta version dependencies using the following command:
+
+```bash
+pip install -r requirements.txt
+```
 
 ### API Keys
 
