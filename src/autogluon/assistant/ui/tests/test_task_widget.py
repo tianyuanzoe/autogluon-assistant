@@ -22,33 +22,33 @@ def test_default_config(at):
     assert at.selectbox(key="_preset").value == "Medium Quality"
     assert at.selectbox(key="_time_limit").value == "10 mins"
     assert at.selectbox(key="_llm").value == "Claude 3.5 with Amazon Bedrock"
-    assert at.checkbox(key="_feature_generation").value == False
+    assert not at.checkbox(key="_feature_generation").value
     assert at.session_state.preset == "Medium Quality"
     assert at.session_state.time_limit == "10 mins"
-    assert at.session_state.feature_generation == False
+    assert not at.session_state.feature_generation
 
 
 def test_best_quality(at):
     at.selectbox(key="_preset").set_value("Best Quality").run()
     assert at.selectbox(key="_time_limit").value == "4 hrs"
-    assert at.checkbox(key="_feature_generation").value == False
+    assert not at.checkbox(key="_feature_generation").value
     assert at.session_state.preset == "Best Quality"
     assert at.session_state.time_limit == "4 hrs"
-    assert at.session_state.feature_generation == False
+    assert not at.session_state.feature_generation
 
 
 def test_high_quality(at):
     at.selectbox(key="_preset").set_value("High Quality").run()
     assert at.selectbox(key="_time_limit").value == "1 hr"
-    assert at.checkbox(key="_feature_generation").value == False
+    assert not at.checkbox(key="_feature_generation").value
     assert at.session_state.preset == "High Quality"
     assert at.session_state.time_limit == "1 hr"
-    assert at.session_state.feature_generation == False
+    assert not at.session_state.feature_generation
 
 
 def test_enable_feature_generation(at):
     at.checkbox(key="_feature_generation").check().run()
-    assert at.session_state.feature_generation == True
+    assert at.session_state.feature_generation
     assert len(at.warning) == 1
 
 
