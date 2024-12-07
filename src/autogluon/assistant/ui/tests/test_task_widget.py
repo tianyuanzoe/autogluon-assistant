@@ -19,6 +19,7 @@ def test_app_starts(at):
 
 
 def test_default_config(at):
+    """Test the default configuration of the application"""
     assert at.selectbox(key="_preset").value == "Medium Quality"
     assert at.selectbox(key="_time_limit").value == "10 mins"
     assert at.selectbox(key="_llm").value == "Claude 3.5 with Amazon Bedrock"
@@ -29,6 +30,7 @@ def test_default_config(at):
 
 
 def test_best_quality(at):
+    """Test the 'Best Quality' preset configuration."""
     at.selectbox(key="_preset").set_value("Best Quality").run()
     assert at.selectbox(key="_time_limit").value == "4 hrs"
     assert not at.checkbox(key="_feature_generation").value
@@ -38,6 +40,7 @@ def test_best_quality(at):
 
 
 def test_high_quality(at):
+    """Test the 'High Quality' preset configuration."""
     at.selectbox(key="_preset").set_value("High Quality").run()
     assert at.selectbox(key="_time_limit").value == "1 hr"
     assert not at.checkbox(key="_feature_generation").value
@@ -47,6 +50,7 @@ def test_high_quality(at):
 
 
 def test_enable_feature_generation(at):
+    """Test enabling the feature generation option."""
     at.checkbox(key="_feature_generation").check().run()
     assert at.session_state.feature_generation
     assert len(at.warning) == 1
