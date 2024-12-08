@@ -3,14 +3,14 @@ from unittest.mock import Mock, mock_open, patch
 import pandas as pd
 import psutil
 import pytest
-from constants import LLM_MAPPING, PRESET_MAPPING, PROVIDER_MAPPING, TIME_LIMIT_MAPPING
+from autogluon.assistant.ui.constants import LLM_MAPPING, PRESET_MAPPING, PROVIDER_MAPPING, TIME_LIMIT_MAPPING
 from streamlit.testing.v1 import AppTest
 
 
 @pytest.fixture()
 def at():
     """Fixture that prepares the Streamlit app tests"""
-    yield AppTest.from_file("app.py").run()
+    yield AppTest.from_file("../../../../src/autogluon/assistant/ui/app.py").run()
 
 
 def test_app_starts(at):
@@ -66,9 +66,8 @@ def mock_subprocess():
         yield mock_popen
 
 
-def test_run_sample_dataset_no_dir():
+def test_run_sample_dataset_no_dir(at):
     """Test sample dataset with no directory selected"""
-    at = AppTest.from_file("app.py")
     at.session_state.selected_dataset = "Sample Dataset"
     at.session_state.sample_dataset_dir = None
     at.run()
