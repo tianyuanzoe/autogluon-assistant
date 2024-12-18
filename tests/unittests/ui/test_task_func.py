@@ -2,8 +2,8 @@ import subprocess
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from constants import PRESET_MAPPING
-from pages.task import run_autogluon_assistant, setup_local_dataset
+from autogluon.assistant.ui.constants import PRESET_MAPPING
+from autogluon.assistant.ui.pages.task import run_autogluon_assistant, setup_local_dataset
 
 
 @pytest.fixture
@@ -34,7 +34,7 @@ def mock_subprocess():
 @pytest.fixture
 def mock_generate_output():
     """Fixture to mock generate_output_filename"""
-    with patch("pages.task.generate_output_filename") as mock_gen:
+    with patch("autogluon.assistant.ui.pages.task.generate_output_filename") as mock_gen:
         mock_gen.return_value = "test_output.csv"
         yield mock_gen
 

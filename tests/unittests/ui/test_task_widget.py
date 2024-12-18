@@ -3,14 +3,14 @@ from unittest.mock import Mock, mock_open, patch
 import pandas as pd
 import psutil
 import pytest
-from constants import LLM_MAPPING, PRESET_MAPPING, PROVIDER_MAPPING, TIME_LIMIT_MAPPING
+from autogluon.assistant.ui.constants import LLM_MAPPING, PRESET_MAPPING, PROVIDER_MAPPING, TIME_LIMIT_MAPPING
 from streamlit.testing.v1 import AppTest
 
 
 @pytest.fixture()
 def at():
     """Fixture that prepares the Streamlit app tests"""
-    yield AppTest.from_file("app.py").run()
+    yield AppTest.from_file("src/autogluon/assistant/ui/app.py").run()
 
 
 def test_app_starts(at):
@@ -66,9 +66,8 @@ def mock_subprocess():
         yield mock_popen
 
 
-def test_run_sample_dataset_no_dir():
+def test_run_sample_dataset_no_dir(at):
     """Test sample dataset with no directory selected"""
-    at = AppTest.from_file("app.py")
     at.session_state.selected_dataset = "Sample Dataset"
     at.session_state.sample_dataset_dir = None
     at.run()
@@ -78,9 +77,8 @@ def test_run_sample_dataset_no_dir():
     assert "Please choose the sample dataset you want to run" in at.warning[0].value
 
 
-def test_run_sample_dataset_success(mock_subprocess):
+def test_run_sample_dataset_success(mock_subprocess, at):
     """Test successful run with sample dataset"""
-    at = AppTest.from_file("app.py")
     at.session_state.sample_dataset_dir = "/test/sample/path"
     at.run()
     at.button(key="run_task").click().run()
@@ -91,19 +89,16 @@ def test_run_sample_dataset_success(mock_subprocess):
     assert args[2] == "/test/sample/path"
 
 
-def test_run_no_upload_dataset():
+def test_run_no_upload_dataset(at):
     """Test Run task with no files uploaded"""
-    at = AppTest.from_file("app.py")
-    at.run()
     at.radio(key="dataset_choose").set_value("Upload Dataset")
     at.button(key="run_task").click().run()
     assert len(at.warning) == 1
     assert "Please upload files before running the task." in at.warning[0].value
 
 
-def test_run_with_config_overrides(mock_subprocess):
+def test_run_with_config_overrides(mock_subprocess, at):
     """Test Run Task with config overrides"""
-    at = AppTest.from_file("app.py")
     at.session_state.sample_dataset_dir = "/test/sample/path"
     at.run()
     at.selectbox(key="_time_limit").set_value("3 mins")

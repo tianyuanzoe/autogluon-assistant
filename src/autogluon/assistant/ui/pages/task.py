@@ -8,17 +8,7 @@ import pandas as pd
 import psutil
 import requests
 import streamlit as st
-from file_uploader import description_file_uploader, file_uploader, save_description_file
-from log_processor import messages, show_logs
 from streamlit_extras.add_vertical_space import add_vertical_space
-from utils import (
-    generate_model_file,
-    generate_output_file,
-    generate_output_filename,
-    get_user_data_dir,
-    get_user_session_id,
-    save_all_files,
-)
 
 from autogluon.assistant.ui.constants import (
     BASE_DATA_DIR,
@@ -36,6 +26,16 @@ from autogluon.assistant.ui.constants import (
     S3_URL,
     TIME_LIMIT_MAPPING,
     TIME_LIMIT_OPTIONS,
+)
+from autogluon.assistant.ui.file_uploader import description_file_uploader, file_uploader, save_description_file
+from autogluon.assistant.ui.log_processor import messages, show_logs
+from autogluon.assistant.ui.utils import (
+    generate_model_file,
+    generate_output_file,
+    generate_output_filename,
+    get_user_data_dir,
+    get_user_session_id,
+    save_all_files,
 )
 
 os.makedirs(BASE_DATA_DIR, exist_ok=True)
