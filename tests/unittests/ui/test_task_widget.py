@@ -3,8 +3,9 @@ from unittest.mock import Mock, mock_open, patch
 import pandas as pd
 import psutil
 import pytest
-from autogluon.assistant.ui.constants import LLM_MAPPING, PRESET_MAPPING, PROVIDER_MAPPING, TIME_LIMIT_MAPPING
 from streamlit.testing.v1 import AppTest
+
+from autogluon.assistant.ui.constants import LLM_MAPPING, PRESET_MAPPING, PROVIDER_MAPPING, TIME_LIMIT_MAPPING
 
 
 @pytest.fixture()
