@@ -6,7 +6,6 @@ import pytest
 from autogluon.assistant.ui.constants import PRESET_MAPPING
 from autogluon.assistant.ui.pages.task import run_autogluon_assistant, setup_local_dataset
 
-
 @pytest.fixture
 def mock_session_state():
     """Fixture to mock Streamlit session state"""
