@@ -4,4 +4,4 @@ set -ex
 source $(dirname "$0")/env_setup.sh
 
 install_ui_test
-python3 -m pytest --junitxml=ui_results.xml tests/unittests/ui --cov-report json:ui_coverage.json
+python3 -m pytest --junitxml=ui_results.xml tests/unittests/ui --cov-report json:./ui_coverage.json
