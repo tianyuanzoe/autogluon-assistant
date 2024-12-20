@@ -1,15 +1,11 @@
 import os
-import pytest
-import pandas as pd
-from unittest.mock import Mock, patch
 from io import StringIO
+from unittest.mock import Mock, patch
 
-from autogluon.assistant.ui.file_uploader import (
-    save_description_file,
-    description_file_uploader,
-    file_uploader,
-    get_user_data_dir,
-)
+import pandas as pd
+import pytest
+
+from autogluon.assistant.ui.file_uploader import description_file_uploader, file_uploader, save_description_file
 
 
 @pytest.fixture
@@ -64,7 +60,7 @@ def test_file_uploader_csv(mock_uploader, mock_session_state):
     mock_file.name = "test.csv"
     mock_file.read.return_value = csv_content.encode()
     df = pd.read_csv(StringIO(csv_content))
-    with patch("pandas.read_csv", return_value=df) as mock_read_csv:
+    with patch("pandas.read_csv", return_value=df):
         mock_uploader.return_value = [mock_file]
         file_uploader()
         assert "test.csv" in mock_session_state.uploaded_files
@@ -78,7 +74,7 @@ def test_file_uploader_excel(mock_uploader, mock_session_state):
     mock_file = Mock()
     mock_file.name = "test.xlsx"
     df = pd.DataFrame({"col1": [1, 3], "col2": [2, 4]})
-    with patch("pandas.read_excel", return_value=df) as mock_read_excel:
+    with patch("pandas.read_excel", return_value=df):
         mock_uploader.return_value = [mock_file]
         file_uploader()
         assert "test.xlsx" in mock_session_state.uploaded_files
