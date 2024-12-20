@@ -10,7 +10,7 @@ import requests
 import streamlit as st
 from streamlit_extras.add_vertical_space import add_vertical_space
 
-from autogluon.assistant.ui.constants import (
+from autogluon.assistant.constants import (
     BASE_DATA_DIR,
     CAPTIONS,
     DATASET_OPTIONS,

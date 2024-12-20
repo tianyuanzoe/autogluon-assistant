@@ -4,7 +4,7 @@ from copy import deepcopy
 import streamlit as st
 import streamlit.components.v1 as components
 
-from autogluon.assistant.ui.constants import DEFAULT_SESSION_VALUES, LOGO_PATH
+from autogluon.assistant.constants import DEFAULT_SESSION_VALUES, LOGO_PATH
 from autogluon.assistant.ui.pages.demo import main as demo
 from autogluon.assistant.ui.pages.feature import main as feature
 from autogluon.assistant.ui.pages.nav_bar import nav_bar

@@ -5,7 +5,7 @@ import psutil
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from autogluon.assistant.ui.constants import LLM_MAPPING, PRESET_MAPPING, PROVIDER_MAPPING, TIME_LIMIT_MAPPING
+from autogluon.assistant.constants import LLM_MAPPING, PRESET_MAPPING, PROVIDER_MAPPING, TIME_LIMIT_MAPPING
 
 
 @pytest.fixture()
